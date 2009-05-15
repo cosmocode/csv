@@ -53,10 +53,10 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         return array(
             'author' => 'Andreas Gohr',
             'email'  => 'gohr@cosmocode.de',
-            'date'   => '2008-04-16',
+            'date'   => '2009-04-16',
             'name'   => 'CSV Plugin',
             'desc'   => 'Displays a CSV file, or inline CSV data, as a table',
-            'url'    => 'http://wiki.splitbrain.org/plugin:csv',
+            'url'    => 'http://www.dokuwiki.org/plugin:csv',
         );
     }
 
