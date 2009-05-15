@@ -53,7 +53,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         return array(
             'author' => 'Andreas Gohr',
             'email'  => 'gohr@cosmocode.de',
-            'date'   => '2009-04-16',
+            'date'   => '2009-05-15',
             'name'   => 'CSV Plugin',
             'desc'   => 'Displays a CSV file, or inline CSV data, as a table',
             'url'    => 'http://www.dokuwiki.org/plugin:csv',
@@ -113,8 +113,8 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             $o = trim($o);
             if (preg_match("/^hdr_rows=([0-9]+)/",$o,$matches)) {
                 $opt['hdr'] = $matches[1];
-            } elseif (preg_match("/^span_empty_cols=([0-9]+)/",$o,$matches)) {
-                $opt['hdr'] = $matches[1];
+            } elseif ($o == 'span_empty_cols=1') {
+                $opt['colspan'] = 1;
             } elseif (preg_match("/^delim=(.+)/",$o,$matches)) {
                 $opt['delim'] = $matches[1];
                 if($opt['delim'] == 'tab') $opt['delim'] = "\t";
