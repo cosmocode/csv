@@ -31,7 +31,9 @@
  * the "" around a field, then it should be surrounded by "" as well.
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
- * @author     Steven Danz (steven-danz@kc.rr.com)
+ * @author     Steven Danz <steven-danz@kc.rr.com>
+ * @author     Gert
+ * @author     Andreas Gohr <gohr@cosmocode.de>
  */
 
 if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
@@ -49,12 +51,12 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
      */
     function getInfo(){
         return array(
-            'author' => 'Steven Danz',
-            'email'  => 'steven-danz@kc.rr.com',
-            'date'   => '2005-11-08',
+            'author' => 'Andreas Gohr',
+            'email'  => 'gohr@cosmocode.de',
+            'date'   => '2008-04-16',
             'name'   => 'CSV Plugin',
             'desc'   => 'Displays a CSV file, or inline CSV data, as a table',
-            'url'    => 'http://www.dokuwiki.org/plugin:csv',
+            'url'    => 'http://wiki.splitbrain.org/plugin:csv',
         );
     }
 
@@ -62,7 +64,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
      * What kind of syntax are we?
      */
     function getType(){
-        return 'container';
+        return 'substition';
     }
 
     /*
@@ -83,173 +85,128 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
      * Connect pattern to lexer
      */
     function connectTo($mode) {
-      $this->Lexer->addEntryPattern("<csv[^>]*>(?=.*?\x3C/csv\x3E)",$mode,'plugin_csv');
+        $this->Lexer->addSpecialPattern("<csv[^>]*>.*?(?:<\/csv>)",$mode,'plugin_csv');
     }
 
-    function postConnect() {
-      $this->Lexer->addExitPattern("</csv>",'plugin_csv');
-    }
 
     /*
      * Handle the matches
      */
     function handle($match, $state, $pos, &$handler){
-        if ($state == DOKU_LEXER_ENTER) {
-            // default values for options
-            $hdr_rows  = 1;
-            $span_cols = 0;
-            $file      = '';
+        $match = substr($match,4,-6);
 
-            /* process possible options */
-            $match = trim(substr($match, 4, -1));
-            $data = preg_split("/\s/",$match,-1);
-            while (count($data) > 0) {
-                $entry = array_shift($data);
-                if (preg_match("/^hdr_rows=([0-9]*)/",$entry,$matches)) {
-                    $hdr_rows = $matches[1];
-                } elseif (preg_match("/^span_empty_cols=([0-9]*)/",$entry,$matches)) {
-                    $span_cols = $matches[1];
-                } else {
-                    $file = $entry;
-                }
-            }
+        //default options
+        $opt = array(
+            'hdr'     => 1,
+            'colspan' => 0,
+            'file'    => '',
+            'delim'   => ',',
+            'content' => ''
+        );
 
-            if ($file != '') {
-                return array('file', $file, $hdr_rows, $span_cols);
+        list($optstr,$opt['content']) = explode('>',$match,2);
+        unset($match);
+
+        // parse options
+        $optsin = explode(' ',$optstr);
+        foreach($optsin as $o){
+            $o = trim($o);
+            if (preg_match("/^hdr_rows=([0-9]+)/",$o,$matches)) {
+                $opt['hdr'] = $matches[1];
+            } elseif (preg_match("/^span_empty_cols=([0-9]+)/",$o,$matches)) {
+                $opt['hdr'] = $matches[1];
+            } elseif (preg_match("/^delim=(.+)/",$o,$matches)) {
+                $opt['delim'] = $matches[1];
+                if($opt['delim'] == 'tab') $opt['delim'] = "\t";
             } else {
-                return array('options', $hdr_rows, $span_cols);
-            }
-        } elseif ($state == DOKU_LEXER_UNMATCHED) {
-            // clear out all the spaces, if anything is left, use it
-            $clean = preg_replace('/\s/', '', $match);
-            if ($clean != '') {
-                return array('inline', $match);
+                $opt['file'] = cleanID($o);
             }
         }
-        return array();
+
+        return $opt;
     }
 
     /*
      * Create output
      */
-    function render($mode, &$renderer, $data) {
-        global $csv_hdr_rows;   // global since the lexer_enter sets these in one match,
-        global $csv_span_cols;  // then uses them in for the data (for inline data)
+    function render($mode, &$renderer, $opt) {
+        if($mode == 'metadata') return false;
 
-        if($mode == 'xhtml'){
-            if (!isset($csv_hdr_rows)) $csv_hdr_rows = 1;
-            if (count($data) > 0) {
-                $type = array_shift($data);
-                $process = 1;
-                if ($type == 'file') {
-                    // prevent caching to ensure the included data is always fresh
-                    // and so we don't cache any errors that might be generated
-                    // from permission problems
-                    $renderer->info['cache'] = FALSE;
-
-                    $file = $data[0];
-                    if (auth_quickaclcheck(getNS($file).':*') < AUTH_READ) {
-                        $auth = 0;
-                        $content = "";
-                    } else {
-                        $auth = 1;
-                        $file = mediaFN($file);
-                        $csv_hdr_rows = $data[1];
-                        $csv_span_cols = $data[2];
-                        if(@file_exists($file)) {
-                            // grab the entire file as a string
-                            $content = file_get_contents($file);
-                        }
-                    }
-                } elseif ($type == 'options') {
-                    $csv_hdr_rows = $data[0];
-                    $csv_span_cols = $data[1];
-                    $process = 0;
-                } elseif ($type == 'inline') {
-                    $content = $data[0];
-                } else {
-                    $renderer->doc .= "Not sure what this is about " . $type ;
-                    $process = 0;
-                }
-
-                if ($process) {
-                    // clean up the input data
-                    // clear any trailing or leading empty lines from the data set
-                    $content = preg_replace("/[\r\n]*$/","",$content);
-                    $content = preg_replace("/^\s*[\r\n]*/","",$content);
-
-                    // Not sure if PHP handles the DOS \r\n or Mac \r, so being paranoid
-                    // and converting them if the exist to \n
-                    $content = preg_replace("/\r\n/","\n",$content);
-                    $content = preg_replace("/\r/","\n",$content);
-
-                    if ($content != "") {
-                        $renderer->table_open();
-                        $row = 1;
-                        while($content != "") {
-                            $renderer->tablerow_open();
-                            $cells = $this->csv_explode_row($content);
-                            // some spreadsheet systems (i.e., excell) appear to
-                            // denote column spans with a completely empty cell
-                            // (to adjacent commas) and an 'empty' cell will
-                            // contain at least one blank space, so if the user
-                            // asks, use that for attempting to span columns
-                            // together
-                            $spans = array();
-                            $span  = 0;
-                            $current = 0;
-                            foreach($cells as $cell) {
-                                if ($cell == '' && $csv_span_cols) {
-                                    $spans[$current] = 0;
-                                    $spans[$span]++;
-                                } else {
-                                    $spans[$current] = 1;
-                                    $span = $current;
-                                }
-                                $current++;
-                            }
-                            $current = 0;
-                            foreach($cells as $cell) {
-                                $cell = preg_replace('/\\\\\\\\/','<br>',$cell);
-                                if ($spans[$current] > 0) {
-                                    $align = 'left';
-                                    if ($spans[$current] > 1) {
-                                        $align = 'center';
-                                    }
-                                    if ($row <= $csv_hdr_rows) {
-                                        $renderer->tableheader_open($spans[$current], $align);
-                                    } else {
-                                        $renderer->tablecell_open($spans[$current], $align);
-                                    }
-                                    $renderer->doc .= $cell;
-                                    if ($row <= $csv_hdr_rows) {
-                                        $renderer->tableheader_close();
-                                    } else {
-                                        $renderer->tablecell_close();
-                                    }
-                                }
-                                $current++;
-                            }
-                            $renderer->tablerow_close();
-                            $row++;
-                        }
-                        $renderer->table_close();
-                    } else {
-                        if ($type == 'file') {
-                            if ($auth == 0) {
-                                $renderer->doc .= "You do not have authorization to read " . $data[0];
-                            } elseif(@file_exists($file)) {
-                                $renderer->doc .= "Data file from " . $data[0] . " is empty";
-                            } else {
-                                $renderer->doc .= "Could not locate " . $data[0];
-                            }
-                        }
-                    }
-                }
+        // load file data
+        if($opt['file']){
+            $renderer->info['cache'] = false; //no caching
+            if (auth_quickaclcheck(getNS($opt['file']).':*') < AUTH_READ) {
+                $renderer->cdata('Access denied to CSV data');
                 return true;
+            } else {
+                $file = mediaFN($opt['file']);
+                $opt['content'] = io_readFile($file);
             }
         }
-        return false;
+
+        $content =& $opt['content'];
+
+        // clear any trailing or leading empty lines from the data set
+        $content = preg_replace("/[\r\n]*$/","",$content);
+        $content = preg_replace("/^\s*[\r\n]*/","",$content);
+
+        if(!trim($content)){
+            $renderer->cdata('No csv data found');
+        }
+
+        // render table
+        $renderer->table_open();
+        $row = 1;
+        while($content != "") {
+            $renderer->tablerow_open();
+            $cells = $this->csv_explode_row($content,$opt['delim']);
+            // some spreadsheet systems (i.e., excell) appear to
+            // denote column spans with a completely empty cell
+            // (to adjacent commas) and an 'empty' cell will
+            // contain at least one blank space, so if the user
+            // asks, use that for attempting to span columns
+            // together
+            $spans = array();
+            $span  = 0;
+            $current = 0;
+            foreach($cells as $cell) {
+                if ($cell == '' && $opt['colspan']) {
+                    $spans[$current] = 0;
+                    $spans[$span]++;
+                } else {
+                    $spans[$current] = 1;
+                    $span = $current;
+                }
+                $current++;
+            }
+            $current = 0;
+            foreach($cells as $cell) {
+                $cell = preg_replace('/\\\\\\\\/',' ',$cell);
+                if ($spans[$current] > 0) {
+                    $align = 'left';
+                    if ($spans[$current] > 1) {
+                        $align = 'center';
+                    }
+                    if ($row <= $opt['hdr']) {
+                        $renderer->tableheader_open($spans[$current], $align);
+                    } else {
+                        $renderer->tablecell_open($spans[$current], $align);
+                    }
+                    $renderer->cdata($cell);
+                    if ($row <= $opt['hdr']) {
+                        $renderer->tableheader_close();
+                    } else {
+                        $renderer->tablecell_close();
+                    }
+                }
+                $current++;
+            }
+            $renderer->tablerow_close();
+            $row++;
+        }
+        $renderer->table_close();
+
+        return true;
     }
 
     // Explode CSV string, consuming it as we go
