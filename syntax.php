@@ -113,6 +113,8 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             } else {
                 $file = mediaFN($opt['file']);
                 $opt['content'] = io_readFile($file);
+                // if not valid UTF-8 is given we assume ISO-8859-1
+                if(!utf8_check($opt['content'])) $opt['content'] = utf8_encode($opt['content']);
             }
         }
 
