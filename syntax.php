@@ -1,34 +1,6 @@
 <?php
 /*
  * CSV Plugin: displays a cvs formatted file or inline data as a table
- * Usage:
- * <csv[ options] file></csv>
- * or
- * <csv[ options]>
- * "a","b","c"
- * "1","2","3"
- * </csv>
- *
- * Where the file is a wiki reference to a file in the media area
- * If you use .csv as the file extension, you will most likely need to add
- * an entry to mime.local.conf in the conf area so you can upload .csv files.
- * Something like this should get you started:
- *      csv     application/msexcel
- *
- * Using both the file and inline methods at the same time will result
- * in two tables being generated, any options defined will apply to both.
- *
- * The plugin allows for two options that can be set in the <csv> tag:
- *
- * hdr_rows=<n>, where <n> is the number or rows at the start of the
- * csv to encode as column headings. The default is 1.
- *
- * span_empty_cols=[0,1], this tells the plugin to create colspans for
- * each empty (two adjacent commas) cell following a cell with content.
- *
- * Embedded commas should be handled by surrounding the field
- * with "" (which most systems do by default).  If you need to preserve
- * the "" around a field, then it should be surrounded by "" as well.
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Steven Danz <steven-danz@kc.rr.com>
