@@ -6,6 +6,7 @@
  * @author     Steven Danz <steven-danz@kc.rr.com>
  * @author     Gert
  * @author     Andreas Gohr <gohr@cosmocode.de>
+ * @author     Jerry G. Geiger <JerryGeiger@web.de>
  */
 
 if(!defined('DOKU_INC')) define('DOKU_INC',realpath(dirname(__FILE__).'/../../').'/');
@@ -65,12 +66,14 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
      * Handle the matches
      */
     function handle($match, $state, $pos, &$handler){
+      global $INFO;
         $match = substr($match,4,-6);
 
         //default options
         $opt = array(
-            'hdr'     => 1,
-            'colspan' => 0,
+            'hdr_rows'    => 1,
+            'hdr_cols'    => 0,
+            'span_empty_cols' => 0,
             'file'    => '',
             'delim'   => ',',
             'content' => ''
@@ -83,6 +86,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $optsin = explode(' ',$optstr);
         foreach($optsin as $o){
             $o = trim($o);
+          /*
             if (preg_match("/^hdr_rows=([0-9]+)/",$o,$matches)) {
                 $opt['hdr'] = $matches[1];
             } elseif ($o == 'span_empty_cols=1') {
@@ -92,8 +96,19 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 if($opt['delim'] == 'tab') $opt['delim'] = "\t";
             } else {
                 $opt['file'] = cleanID($o);
+                if(!strlen(getNS($opt['file'])))
+                  $opt['file'] = $INFO['namespace'].':'.$opt['file'];
+            }
+           */
+            if (preg_match("/(\w+)=(.*)/",$o,$matches)) {
+                $opt[$matches[1]] = $matches[2];
+            } else {
+                $opt['file'] = cleanID($o);
+                if(!strlen(getNS($opt['file'])))
+                  $opt['file'] = $INFO['namespace'].':'.$opt['file'];
             }
         }
+        if($opt['delim'] == 'tab') $opt['delim'] = "\t";
 
         return $opt;
     }
@@ -127,24 +142,33 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         if(!trim($content)){
             $renderer->cdata('No csv data found');
         }
-
-        // render table
-        $renderer->table_open();
-        $row = 1;
+        $rows = array();
+        $maxcol=0;
+        $maxrow=0;
         while($content != "") {
-            $renderer->tablerow_open();
-            $cells = $this->csv_explode_row($content,$opt['delim']);
+          $thisrow = $this->csv_explode_row($content,$opt['delim']);
+          if($maxcol < count($thisrow))
+              $maxcol = count($thisrow);
+          array_push($rows, $thisrow);
+            //$cells = $this->csv_explode_row($content,$opt['delim']);
             // some spreadsheet systems (i.e., excell) appear to
             // denote column spans with a completely empty cell
             // (to adjacent commas) and an 'empty' cell will
             // contain at least one blank space, so if the user
             // asks, use that for attempting to span columns
             // together
+          $maxrow++;
+        }
+        // render table we need values e.g. for ODT plugin ... -jerry
+        $renderer->table_open($maxcol, $maxrow);
+        $row = 1;
+        foreach($rows as $cells) {
+            $renderer->tablerow_open();
             $spans = array();
             $span  = 0;
             $current = 0;
             foreach($cells as $cell) {
-                if ($cell == '' && $opt['colspan']) {
+                if ($cell == '' && $opt['span_empty_cols']) {
                     $spans[$current] = 0;
                     $spans[$span]++;
                 } else {
@@ -152,6 +176,10 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                     $span = $current;
                 }
                 $current++;
+            }
+            //handle empty line feature ;-) jerry
+            if($current < 2) {
+              $spans[0] = $maxcol;
             }
             $current = 0;
             foreach($cells as $cell) {
@@ -161,13 +189,17 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                     if ($spans[$current] > 1) {
                         $align = 'center';
                     }
-                    if ($row <= $opt['hdr']) {
+                    if ($row <= $opt['hdr_rows'] || 
+                      $current < $opt['hdr_cols'] || // empty line feature
+                      ($current == 0 && $spans[0] == $maxcol)) {
                         $renderer->tableheader_open($spans[$current], $align);
                     } else {
                         $renderer->tablecell_open($spans[$current], $align);
                     }
                     $renderer->cdata($cell);
-                    if ($row <= $opt['hdr']) {
+                    if ($row <= $opt['hdr_rows'] ||
+                      $current < $opt['hdr_cols'] ||
+                      ($current == 0 && $spans[0] == $maxcol)) {
                         $renderer->tableheader_close();
                     } else {
                         $renderer->tablecell_close();
