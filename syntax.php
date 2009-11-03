@@ -26,7 +26,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         return array(
             'author' => 'Andreas Gohr',
             'email'  => 'gohr@cosmocode.de',
-            'date'   => '2009-08-31',
+            'date'   => '2009-11-14',
             'name'   => 'CSV Plugin',
             'desc'   => 'Displays a CSV file, or inline CSV data, as a table',
             'url'    => 'http://www.dokuwiki.org/plugin:csv',
@@ -86,26 +86,16 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $optsin = explode(' ',$optstr);
         foreach($optsin as $o){
             $o = trim($o);
-          /*
-            if (preg_match("/^hdr_rows=([0-9]+)/",$o,$matches)) {
-                $opt['hdr'] = $matches[1];
-            } elseif ($o == 'span_empty_cols=1') {
-                $opt['colspan'] = 1;
-            } elseif (preg_match("/^delim=(.+)/",$o,$matches)) {
-                $opt['delim'] = $matches[1];
-                if($opt['delim'] == 'tab') $opt['delim'] = "\t";
-            } else {
-                $opt['file'] = cleanID($o);
-                if(!strlen(getNS($opt['file'])))
-                  $opt['file'] = $INFO['namespace'].':'.$opt['file'];
-            }
-           */
             if (preg_match("/(\w+)=(.*)/",$o,$matches)) {
                 $opt[$matches[1]] = $matches[2];
             } else {
-                $opt['file'] = cleanID($o);
-                if(!strlen(getNS($opt['file'])))
-                  $opt['file'] = $INFO['namespace'].':'.$opt['file'];
+                if(preg_match('/^https?:\/\//i',$o)){
+                    $opt['file'] = $o;
+                }else{
+                    $opt['file'] = cleanID($o);
+                    if(!strlen(getNS($opt['file'])))
+                      $opt['file'] = $INFO['namespace'].':'.$opt['file'];
+                }
             }
         }
         if($opt['delim'] == 'tab') $opt['delim'] = "\t";
@@ -121,15 +111,25 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
 
         // load file data
         if($opt['file']){
-            $renderer->info['cache'] = false; //no caching
-            if (auth_quickaclcheck(getNS($opt['file']).':*') < AUTH_READ) {
-                $renderer->cdata('Access denied to CSV data');
-                return true;
-            } else {
-                $file = mediaFN($opt['file']);
-                $opt['content'] = io_readFile($file);
-                // if not valid UTF-8 is given we assume ISO-8859-1
-                if(!utf8_check($opt['content'])) $opt['content'] = utf8_encode($opt['content']);
+            if(preg_match('/^https?:\/\//i',$opt['file'])){
+                require_once(DOKU_INC.'inc/HTTPClient.php');
+                $http = new DokuHTTPClient();
+                $opt['content'] = $http->get($opt['file']);
+                if(!$opt['content']){
+                    $renderer->cdata('Failed to fetch remote CSV data');
+                    return true;
+                }
+            }else{
+                $renderer->info['cache'] = false; //no caching
+                if (auth_quickaclcheck(getNS($opt['file']).':*') < AUTH_READ) {
+                    $renderer->cdata('Access denied to CSV data');
+                    return true;
+                } else {
+                    $file = mediaFN($opt['file']);
+                    $opt['content'] = io_readFile($file);
+                    // if not valid UTF-8 is given we assume ISO-8859-1
+                    if(!utf8_check($opt['content'])) $opt['content'] = utf8_encode($opt['content']);
+                }
             }
         }
 
