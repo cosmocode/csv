@@ -88,7 +88,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             $o = trim($o);
             if (preg_match("/(\w+)=(.*)/",$o,$matches)) {
                 $opt[$matches[1]] = $matches[2];
-            } else {
+            } elseif($o) {
                 if(preg_match('/^https?:\/\//i',$o)){
                     $opt['file'] = $o;
                 }else{
