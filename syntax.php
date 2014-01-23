@@ -74,9 +74,10 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             'hdr_rows'    => 1,
             'hdr_cols'    => 0,
             'span_empty_cols' => 0,
+            'force_cells' => 0,
             'file'    => '',
             'delim'   => ',',
-            'content' => ''
+            'content' => '',
         );
 
         list($optstr,$opt['content']) = explode('>',$match,2);
@@ -168,6 +169,14 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             $spans = array();
             $span  = 0;
             $current = 0;
+            if ($opt['force_empty_cells']) {
+                if (count($cells) < $maxrow) {
+                    $empty_cells = $maxrow - count($cells);
+                    for ($i = 0; $i <= $empty_cells; ++$i) {
+                        $cells[] = '';
+                    }
+                }
+            }
             foreach($cells as $cell) {
                 if ($cell == '' && $opt['span_empty_cols']) {
                     $spans[$current] = 0;
