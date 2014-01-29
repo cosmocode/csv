@@ -184,6 +184,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             $row = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
             $line++;
         }
+        $renderer->table_close();
 
         return true;
     }
