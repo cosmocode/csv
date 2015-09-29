@@ -75,29 +75,29 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $optsin = explode(' ', $optstr);
         $populate = '';
         foreach($optsin as $o) {
-           $o = trim($o);
-           if ( $populate != '' ) {
-              // handle closing quote
-              $opt[$populate] .= ' ';
-              if ( substr($o, -1) == '"' ) {
-                 $o = substr($o, 0, -1);
-                 $opt[$populate] .= $o;
-                 $populate = '';
-              }
-              else
-                 $opt[$populate] .= $o;
-           }
-           elseif (preg_match('/(\w+)=(.*)/', $o, $matches)) {
-              // strip leading quote
-              if ( substr($matches[2], 0, 1) == '"' ) {
-                 $matches[2] = substr($matches[2], 1, -1);
-                 if ( substr($matches[2], -1) == '"' ) 
-                    $matches[2] = substr($matches[2], 0, -1);
-                 else
-                    $populate = $matches[1];
-              }
-              $opt[$matches[1]] = $matches[2];
-           } elseif($o) {
+            $o = trim($o);
+            if ( $populate != '' ) {
+                // handle closing quote
+                $opt[$populate] .= ' ';
+                if ( substr($o, -1) == '"' ) {
+                    $o = substr($o, 0, -1);
+                    $opt[$populate] .= $o;
+                    $populate = '';
+                }
+                else
+                    $opt[$populate] .= $o;
+            }
+            elseif (preg_match('/(\w+)=(.*)/', $o, $matches)) {
+                // strip leading quote
+                if ( substr($matches[2], 0, 1) == '"' ) {
+                    $matches[2] = substr($matches[2], 1, -1);
+                    if ( substr($matches[2], -1) == '"' ) 
+                        $matches[2] = substr($matches[2], 0, -1);
+                    else
+                        $populate = $matches[1];
+                }
+                $opt[$matches[1]] = $matches[2];
+            } elseif($o) {
                 if(preg_match('/^https?:\/\//i', $o)) {
                     $opt['file'] = $o;
                 } else {
@@ -105,7 +105,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                     if(!strlen(getNS($opt['file'])))
                         $opt['file'] = $INFO['namespace'].':'.$opt['file'];
                 }
-           }
+            }
         }
         if($opt['delim'] == 'tab') $opt['delim'] = "\t";
 
@@ -160,17 +160,17 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 $targetfile = '';
                 return true;
             } else {
-               $file = mediaFN($targetfile);
-               if ( file_put_contents ($file, $content, LOCK_EX) > 0 ) {
-                  $linkname = $opt['linkname'];
-                  if ( $linkname == '' )
-                     $linkname = 'Download CSV file';
-               }
-               else {
-                   $targetfile = '';
-                   $renderer->cdata('Failed to write '.$file.': Could not create download link.');
-                   return true;
-               }
+                $file = mediaFN($targetfile);
+                if ( file_put_contents ($file, $content, LOCK_EX) > 0 ) {
+                    $linkname = $opt['linkname'];
+                    if ( $linkname == '' )
+                        $linkname = 'Download CSV file';
+                }
+                else {
+                    $targetfile = '';
+                    $renderer->cdata('Failed to write '.$file.': Could not create download link.');
+                    return true;
+                }
             }
         }
 
@@ -233,7 +233,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $renderer->table_close();
 
         if ( $targetfile != '' ) 
-           $renderer->internalmedia($targetfile, $linkname);
+            $renderer->internalmedia($targetfile, $linkname);
 
         return true;
     }
