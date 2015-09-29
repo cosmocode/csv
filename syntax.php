@@ -59,7 +59,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             'hdr_rows'        => 1,
             'hdr_cols'        => 0,
             'span_empty_cols' => 0,
-            'import'          => '',
+            'file'            => '',
             'export'          => '',
             'linkname'        => 'Download CSV file',
             'delim'           => ',',
@@ -72,20 +72,40 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         unset($match);
 
         // parse options
-        $optsin = explode('|', $optstr);
+        $optsin = explode(' ', $optstr);
+        $populate = '';
         foreach($optsin as $o) {
-            $o = trim($o);
-            if(preg_match('/(\w+)=(.*)/', $o, $matches)) {
-                $opt[$matches[1]] = $matches[2];
-            } elseif($o) {
+           $o = trim($o);
+           if ( $populate != '' ) {
+              // handle closing quote
+              $opt[$populate] .= ' ';
+              if ( substr($o, -1) == '"' ) {
+                 $o = substr($o, 0, -1);
+                 $opt[$populate] .= $o;
+                 $populate = '';
+              }
+              else
+                 $opt[$populate] .= $o;
+           }
+           elseif (preg_match('/(\w+)=(.*)/', $o, $matches)) {
+              // strip leading quote
+              if ( substr($matches[2], 0, 1) == '"' ) {
+                 $matches[2] = substr($matches[2], 1, -1);
+                 if ( substr($matches[2], -1) == '"' ) 
+                    $matches[2] = substr($matches[2], 0, -1);
+                 else
+                    $populate = $matches[1];
+              }
+              $opt[$matches[1]] = $matches[2];
+           } elseif($o) {
                 if(preg_match('/^https?:\/\//i', $o)) {
-                    $opt['import'] = $o;
+                    $opt['file'] = $o;
                 } else {
-                    $opt['import'] = cleanID($o);
-                    if(!strlen(getNS($opt['import'])))
-                        $opt['import'] = $INFO['namespace'].':'.$opt['import'];
+                    $opt['file'] = cleanID($o);
+                    if(!strlen(getNS($opt['file'])))
+                        $opt['file'] = $INFO['namespace'].':'.$opt['file'];
                 }
-            }
+           }
         }
         if($opt['delim'] == 'tab') $opt['delim'] = "\t";
 
@@ -99,22 +119,22 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         if($mode == 'metadata') return false;
 
         // load file data
-        if($opt['import']) {
-            if(preg_match('/^https?:\/\//i', $opt['import'])) {
+        if($opt['file']) {
+            if(preg_match('/^https?:\/\//i', $opt['file'])) {
                 require_once(DOKU_INC.'inc/HTTPClient.php');
                 $http           = new DokuHTTPClient();
-                $opt['content'] = $http->get($opt['import']);
+                $opt['content'] = $http->get($opt['file']);
                 if($opt['content'] === false) {
                     $renderer->cdata('Failed to fetch remote CSV data');
                     return true;
                 }
             } else {
                 $renderer->info['cache'] = false;
-                if(auth_quickaclcheck(getNS($opt['import']).':*') < AUTH_READ) {
+                if(auth_quickaclcheck(getNS($opt['file']).':*') < AUTH_READ) {
                     $renderer->cdata('Access denied to CSV data');
                     return true;
                 } else {
-                    $file           = mediaFN($opt['import']);
+                    $file           = mediaFN($opt['file']);
                     $opt['content'] = io_readFile($file);
                 }
             }
