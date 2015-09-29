@@ -59,7 +59,9 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             'hdr_rows'        => 1,
             'hdr_cols'        => 0,
             'span_empty_cols' => 0,
-            'file'            => '',
+            'import'          => '',
+            'export'          => '',
+            'linkname'        => 'Download CSV file',
             'delim'           => ',',
             'enclosure'       => '"',
             'escape'          => '"',
@@ -70,18 +72,18 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         unset($match);
 
         // parse options
-        $optsin = explode(' ', $optstr);
+        $optsin = explode('|', $optstr);
         foreach($optsin as $o) {
             $o = trim($o);
             if(preg_match('/(\w+)=(.*)/', $o, $matches)) {
                 $opt[$matches[1]] = $matches[2];
             } elseif($o) {
                 if(preg_match('/^https?:\/\//i', $o)) {
-                    $opt['file'] = $o;
+                    $opt['import'] = $o;
                 } else {
-                    $opt['file'] = cleanID($o);
-                    if(!strlen(getNS($opt['file'])))
-                        $opt['file'] = $INFO['namespace'].':'.$opt['file'];
+                    $opt['import'] = cleanID($o);
+                    if(!strlen(getNS($opt['import'])))
+                        $opt['import'] = $INFO['namespace'].':'.$opt['import'];
                 }
             }
         }
@@ -97,22 +99,22 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         if($mode == 'metadata') return false;
 
         // load file data
-        if($opt['file']) {
-            if(preg_match('/^https?:\/\//i', $opt['file'])) {
+        if($opt['import']) {
+            if(preg_match('/^https?:\/\//i', $opt['import'])) {
                 require_once(DOKU_INC.'inc/HTTPClient.php');
                 $http           = new DokuHTTPClient();
-                $opt['content'] = $http->get($opt['file']);
+                $opt['content'] = $http->get($opt['import']);
                 if($opt['content'] === false) {
                     $renderer->cdata('Failed to fetch remote CSV data');
                     return true;
                 }
             } else {
                 $renderer->info['cache'] = false;
-                if(auth_quickaclcheck(getNS($opt['file']).':*') < AUTH_READ) {
+                if(auth_quickaclcheck(getNS($opt['import']).':*') < AUTH_READ) {
                     $renderer->cdata('Access denied to CSV data');
                     return true;
                 } else {
-                    $file           = mediaFN($opt['file']);
+                    $file           = mediaFN($opt['import']);
                     $opt['content'] = io_readFile($file);
                 }
             }
@@ -126,6 +128,30 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         if($content === '') {
             $renderer->cdata('No csv data found');
             return true;
+        }
+
+        // Export the csv file
+        $targetfile = '';
+        $export = $opt['export'];
+        if ( $export != '' ) {
+            $targetfile = htmlspecialchars(trim($export));
+            if ( auth_quickaclcheck(getNS($targetfile.':*')) < AUTH_EDIT) {
+                $renderer->cdata('Access denied: Could not create download link.');
+                $targetfile = '';
+                return true;
+            } else {
+               $file = mediaFN($targetfile);
+               if ( file_put_contents ($file, $content, LOCK_EX) > 0 ) {
+                  $linkname = $opt['linkname'];
+                  if ( $linkname == '' )
+                     $linkname = 'Download CSV file';
+               }
+               else {
+                   $targetfile = '';
+                   $renderer->cdata('Failed to write '.$file.': Could not create download link.');
+                   return true;
+               }
+            }
         }
 
         // get the first row - it will define the structure
@@ -185,6 +211,9 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             $line++;
         }
         $renderer->table_close();
+
+        if ( $targetfile != '' ) 
+           $renderer->internalmedia($targetfile, $linkname);
 
         return true;
     }
