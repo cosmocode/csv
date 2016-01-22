@@ -50,7 +50,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
     /**
      * Handle the matches
      */
-    function handle($match, $state, $pos, Doku_Handler &$handler) {
+    function handle($match, $state, $pos, Doku_Handler $handler) {
         global $INFO;
         $match = substr($match, 4, -6);
 
@@ -93,7 +93,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
     /**
      * Create output
      */
-    function render($mode, Doku_Renderer &$renderer, $opt) {
+    function render($mode, Doku_Renderer $renderer, $opt) {
         if($mode == 'metadata') return false;
 
         // load file data
