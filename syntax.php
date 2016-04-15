@@ -59,6 +59,8 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             'hdr_rows'        => 1,
             'hdr_cols'        => 0,
             'span_empty_cols' => 0,
+            'maxlines'        => 0,
+            'offset'          => 0,
             'file'            => '',
             'delim'           => ',',
             'enclosure'       => '"',
@@ -133,6 +135,13 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $maxcol = count($row);
         $line   = 0;
 
+        // use offset (only if offset is not default value 0)
+        if($opt['offset'] >= 1) {
+        	$content = explode("\n", $content);
+        	$content = array_slice($content, $opt['offset']+1-$opt['hdr_rows']);
+        	$content = implode("\n", $content);
+        }
+
         // create the table and start rendering
         $renderer->table_open($maxcol);
         while($row !== false) {
@@ -183,6 +192,11 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             // get next row
             $row = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
             $line++;
+            
+            // limit max lines (only if maxlines is not default value 0)
+            if($opt['maxlines'] >= 1 and $opt['maxlines'] == ($line-$opt['hdr_rows'])) {
+            	$row = false;
+            }
         }
         $renderer->table_close();
 
@@ -339,5 +353,4 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         return $fields;
     }
 }
-
 //Setup VIM: ex: et ts=4 enc=utf-8 :
