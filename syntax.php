@@ -60,7 +60,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             'hdr_cols'        => 0,
             'span_empty_cols' => 0,
             'maxlines'        => 0,
-	    'offset'	      => 0,
+            'offset'          => 0,
             'file'            => '',
             'delim'           => ',',
             'enclosure'       => '"',
@@ -125,7 +125,6 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         // check if there is content
         $content =& $opt['content'];
         $content = trim($content);
-				
         if($content === '') {
             $renderer->cdata('No csv data found');
             return true;
@@ -135,13 +134,13 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $row    = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
         $maxcol = count($row);
         $line   = 0;
-		
-		// use offset (only if offset is not default value 0)
-		if($opt['offset'] >= 1) {
-			$content = explode("\n", $content);
-			$content = array_slice($content, $opt['offset']+1-$opt['hdr_rows']);
-			$content = implode("\n", $content);
-		}
+
+        // use offset (only if offset is not default value 0)
+        if($opt['offset'] >= 1) {
+        	$content = explode("\n", $content);
+        	$content = array_slice($content, $opt['offset']+1-$opt['hdr_rows']);
+        	$content = implode("\n", $content);
+        }
 
         // create the table and start rendering
         $renderer->table_open($maxcol);
@@ -196,8 +195,8 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             
             // limit max lines (only if maxlines is not default value 0)
             if($opt['maxlines'] >= 1 and $opt['maxlines'] == ($line-$opt['hdr_rows'])) {
-				$row = false;
-			}
+            	$row = false;
+            }
         }
         $renderer->table_close();
 
