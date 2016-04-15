@@ -62,6 +62,8 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             'maxlines'        => 0,
             'offset'          => 0,
             'file'            => '',
+            'export'          => '',
+            'linkname'        => 'Download CSV file',
             'delim'           => ',',
             'enclosure'       => '"',
             'escape'          => '"',
@@ -73,9 +75,29 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
 
         // parse options
         $optsin = explode(' ', $optstr);
+        $populate = '';
         foreach($optsin as $o) {
             $o = trim($o);
-            if(preg_match('/(\w+)=(.*)/', $o, $matches)) {
+            if ( $populate != '' ) {
+                // handle closing quote
+                $opt[$populate] .= ' ';
+                if ( substr($o, -1) == '"' ) {
+                    $o = substr($o, 0, -1);
+                    $opt[$populate] .= $o;
+                    $populate = '';
+                }
+                else
+                    $opt[$populate] .= $o;
+            }
+            elseif (preg_match('/(\w+)=(.*)/', $o, $matches)) {
+                // strip leading quote
+                if ( substr($matches[2], 0, 1) == '"' ) {
+                    $matches[2] = substr($matches[2], 1, -1);
+                    if ( substr($matches[2], -1) == '"' ) 
+                        $matches[2] = substr($matches[2], 0, -1);
+                    else
+                        $populate = $matches[1];
+                }
                 $opt[$matches[1]] = $matches[2];
             } elseif($o) {
                 if(preg_match('/^https?:\/\//i', $o)) {
@@ -128,6 +150,30 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         if($content === '') {
             $renderer->cdata('No csv data found');
             return true;
+        }
+
+        // Export the csv file
+        $targetfile = '';
+        $export = $opt['export'];
+        if ( $export != '' ) {
+            $targetfile = htmlspecialchars(trim($export));
+            if ( auth_quickaclcheck(getNS($targetfile.':*')) < AUTH_EDIT) {
+                $renderer->cdata('Access denied: Could not create download link.');
+                $targetfile = '';
+                return true;
+            } else {
+                $file = mediaFN($targetfile);
+                if ( file_put_contents ($file, $content, LOCK_EX) > 0 ) {
+                    $linkname = $opt['linkname'];
+                    if ( $linkname == '' )
+                        $linkname = 'Download CSV file';
+                }
+                else {
+                    $targetfile = '';
+                    $renderer->cdata('Failed to write '.$file.': Could not create download link.');
+                    return true;
+                }
+            }
         }
 
         // get the first row - it will define the structure
@@ -199,6 +245,9 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             }
         }
         $renderer->table_close();
+
+        if ( $targetfile != '' ) 
+            $renderer->internalmedia($targetfile, $linkname);
 
         return true;
     }
