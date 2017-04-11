@@ -128,7 +128,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         }
 
         // get the first row - it will define the structure
-        $row = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+        $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
         $maxcol = count($row);
         $line = 0;
 
@@ -187,7 +187,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             $renderer->tablerow_close();
 
             // get next row
-            $row = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+            $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
             $line++;
 
             // limit max lines (only if maxlines is not default value 0)
@@ -200,154 +200,5 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         return true;
     }
 
-    /**
-     * Reads one CSV line from the given string
-     *
-     * Should handle embedded new lines, escapes, quotes and whatever else CSVs tend to have
-     *
-     * Note $delim, $enc, $esc have to be one ASCII character only! The encoding of the content is not
-     * handled here but is read byte by byte - if you need conversions do it on the output
-     *
-     * @author Andreas Gohr <andi@splitbrain.org>
-     * @param string $str Input string, first CSV line will be removed
-     * @param string $delim Delimiter character
-     * @param string $enc Enclosing character
-     * @param string $esc Escape character
-     * @return array|boolean fields found on the line, false when no more lines could be found
-     */
-    function csv_explode_row(&$str, $delim = ',', $enc = '"', $esc = '\\') {
-        $len = strlen($str);
-
-        $infield = false;
-        $inenc = false;
-
-        $fields = array();
-        $word = '';
-
-        for($i = 0; $i < $len; $i++) {
-            // convert to unix line endings
-            if($str[$i] == "\015") {
-                if($str[($i + 1)] != "\012") {
-                    $str[$i] = "\012";
-                } else {
-                    $i++;
-                    if($i >= $len) break;
-                }
-            }
-
-            // simple escape that is not an enclosure
-            if($str[$i] == $esc && $esc != $enc) {
-                $i++; // skip this char and take next as is
-                $word .= $str[$i];
-                $infield = true; // we are obviously in a field
-                continue;
-            }
-
-            /*
-             * Now decide special cases depending on current field and enclosure state
-             */
-            if(!$infield) { // not in field
-
-                // we hit a delimiter even though we're not in a field - an empty field
-                if($str[$i] == $delim) {
-                    $fields[] = $word;
-                    $word = '';
-                    $infield = false;
-                    $inenc = false;
-                    continue;
-                }
-
-                // a newline - an empty field as well, but we're done with this line
-                if($str[$i] == "\n") {
-                    $infield = false;
-                    $inenc = false;
-
-                    //we saw no fields or content yet? empty line! skip it.
-                    if(!count($fields) && $word === '') continue;
-
-                    // otherwise add field
-                    $fields[] = $word;
-                    $word = '';
-                    break;
-                }
-
-                // we skip leading whitespace when we're not in a field yet
-                if($str[$i] === ' ') {
-                    continue;
-                }
-
-                // cell starts with an enclosure
-                if($str[$i] == $enc) {
-                    // skip this one but open an enclosed field
-                    $infield = true;
-                    $inenc = true;
-                    continue;
-                }
-
-                // still here? whatever is here, is content and starts a field
-                $word .= $str[$i];
-                $infield = true;
-                $inenc = false;
-
-            } elseif($inenc) { // in field and enclosure
-
-                // we have an escape char that is an enclosure and the next char is an enclosure, too
-                if($str[$i] == $esc && $esc == $enc && $str[$i + 1] == $esc) {
-                    $i++; // skip this char and take next as is
-                    $word .= $str[$i];
-                    continue;
-                }
-
-                // we have an enclosure char
-                if($str[$i] == $enc) {
-                    // skip this one but close the enclosure
-                    $infield = true;
-                    $inenc = false;
-                    continue;
-                }
-
-                // still here? just add more content
-                $word .= $str[$i];
-
-            } else { // in field but no enclosure
-
-                // a delimiter - next field please
-                if($str[$i] == $delim) {
-                    $fields[] = $word;
-                    $word = '';
-                    $infield = false;
-                    $inenc = false;
-                    continue;
-                }
-
-                // EOL - we're done with the line
-                if($str[$i] == "\n") {
-                    $infield = false;
-                    $inenc = false;
-
-                    //we saw no fields or content yet? empty line! skip it.
-                    if(!count($fields) && $word === '') continue;
-
-                    $fields[] = $word;
-                    $word = '';
-                    break;
-                }
-
-                // still here? just add more content
-                $word .= $str[$i];
-            }
-        }
-
-        // did we hit the end?
-        if($infield && ($word || count($fields))) {
-            $fields[] = $word;
-        }
-
-        // shorten the string by the stuff we read
-        $str = substr($str, $i + 1);
-
-        if(!count($fields)) return false;
-        return $fields;
-    }
 }
 //Setup VIM: ex: et ts=4 enc=utf-8 :

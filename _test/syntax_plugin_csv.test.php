@@ -54,12 +54,11 @@ class syntax_plugin_csv_test extends DokuWikiTest {
      * @return array
      */
     function csvparse($csvdata, $delim, $enc, $esc){
-        $plugin = new syntax_plugin_csv();
 
         $data = array();
 
         while($csvdata != '') {
-            $line = $plugin->csv_explode_row($csvdata, $delim, '"', '"');
+            $line = helper_plugin_csv::csv_explode_row($csvdata, $delim, '"', '"');
             if($line !== false) array_push($data, $line);
         }
 
