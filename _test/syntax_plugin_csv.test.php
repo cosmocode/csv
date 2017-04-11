@@ -71,21 +71,31 @@ class syntax_plugin_csv_test extends DokuWikiTest {
     function test_content() {
         $contents = file_get_contents(__DIR__ . '/avengers.csv');
 
-        $opt = array(
-            'hdr_rows' => 1,
-            'hdr_cols' => 0,
-            'span_empty_cols' => 0,
-            'maxlines' => 0,
-            'offset' => 0,
-            'file' => '',
-            'delim' => ',',
-            'enclosure' => '"',
-            'escape' => '"',
-            'content' => ''
-        );
+        $opt = helper_plugin_csv::getDefaultOpt();
 
         $data = helper_plugin_csv::prepareData($contents, $opt);
         $this->assertSame(174, count($data), 'number of rows');
         $this->assertSame(21, count($data[0]), 'number of columns');
+    }
+
+    /**
+     * check general content loading
+     */
+    function test_filter() {
+        $contents = file_get_contents(__DIR__ . '/avengers.csv');
+
+        $opt = helper_plugin_csv::getDefaultOpt();
+        $opt['filter'][4] = '^FEMALE$';
+
+        $data = helper_plugin_csv::prepareData($contents, $opt);
+        $this->assertSame(59, count($data), 'number of rows');
+        $this->assertSame(21, count($data[0]), 'number of columns');
+
+        $opt['filter'][1] = '^.*?jessica.*?$';
+        $data = helper_plugin_csv::prepareData($contents, $opt);
+        $this->assertSame(3, count($data), 'number of rows');
+        $this->assertSame(21, count($data[0]), 'number of columns');
+
+        $this->assertEquals('Jessica Jones', $data[2][1]);
     }
 }

@@ -53,27 +53,23 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         $match = substr($match, 4, -6);
 
         //default options
-        $opt = array(
-            'hdr_rows' => 1,
-            'hdr_cols' => 0,
-            'span_empty_cols' => 0,
-            'maxlines' => 0,
-            'offset' => 0,
-            'file' => '',
-            'delim' => ',',
-            'enclosure' => '"',
-            'escape' => '"',
-            'content' => ''
-        );
+        $opt = helper_plugin_csv::getDefaultOpt();
 
         list($optstr, $opt['content']) = explode('>', $match, 2);
         unset($match);
 
         // parse options
         $optsin = explode(' ', $optstr);
+        $filters = array();
         foreach($optsin as $o) {
             $o = trim($o);
-            if(preg_match('/(\w+)=(.*)/', $o, $matches)) {
+            if(preg_match('/filter\[(\d+)\]="(.*?)"/', $o, $matches)) {
+                $filters[$matches[1]] = array($matches[2], 'g');
+            } elseif(preg_match('/filter\[(\w)\]="(.*?)"/', $o, $matches)) {
+                $filters[$matches[1]] = array($matches[3], $matches[2]);
+            } elseif(preg_match('/(\w+)="(.*?)"/', $o, $matches)) {
+                $opt[$matches[1]] = $matches[2];
+            } elseif(preg_match('/(\w+)=(.*)/', $o, $matches)) {
                 $opt[$matches[1]] = $matches[2];
             } elseif($o) {
                 if(preg_match('/^https?:\/\//i', $o)) {
@@ -86,6 +82,21 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             }
         }
         if($opt['delim'] == 'tab') $opt['delim'] = "\t";
+
+        foreach($filters as $col => $filter) {
+            list($text, $type) = $filter;
+            if($type != 'r') {
+                $text = preg_quote_cb($text);
+                $text = str_replace('\*', '.*?', $text);
+                $text = '^' . $text . '$';
+            }
+
+            if(@preg_match("/$text/", null) === false) {
+                msg("Invalid filter for column $col");
+            } else {
+                $opt['filter'][$col-1] = $text; // use zero based index internally
+            }
+        }
 
         return $opt;
     }

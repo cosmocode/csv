@@ -15,6 +15,27 @@ if(!defined('DOKU_INC')) die('meh');
 class helper_plugin_csv extends DokuWiki_Plugin {
 
     /**
+     * Returns the default options
+     *
+     * @return array
+     */
+    public static function getDefaultOpt() {
+        return array(
+            'hdr_rows' => 1,
+            'hdr_cols' => 0,
+            'span_empty_cols' => 0,
+            'maxlines' => 0,
+            'offset' => 0,
+            'file' => '',
+            'delim' => ',',
+            'enclosure' => '"',
+            'escape' => '"',
+            'content' => '',
+            'filter' => array()
+        );
+    }
+
+    /**
      * @param string $content
      * @param array $opt
      * @return array
@@ -34,14 +55,25 @@ class helper_plugin_csv extends DokuWiki_Plugin {
             if($line < $opt['hdr_rows']) {
                 // if headers are wanted, always add them
                 $data[] = $row;
-            } elseif($opt['offset'] && $line < $opt['offset']+$opt['hdr_rows']) {
+            } elseif($opt['offset'] && $line < $opt['offset'] + $opt['hdr_rows']) {
                 // ignore the line
-            } elseif($opt['maxlines'] && $line > $opt['maxlines']+$opt['hdr_rows']) {
+            } elseif($opt['maxlines'] && $line > $opt['maxlines'] + $opt['hdr_rows']) {
                 // we're done
                 break;
             } else {
+                // check filters
+                $filterok = true;
+                foreach($opt['filter'] as $col => $filter) {
+                    if(!preg_match("/$filter/i", $row[$col])) {
+                        $filterok = false;
+                        break;
+                    }
+                }
+
                 // add the line
-                $data[] = $row;
+                if($filterok) {
+                    $data[] = $row;
+                }
             }
 
             $line++;
@@ -50,7 +82,6 @@ class helper_plugin_csv extends DokuWiki_Plugin {
 
         return $data;
     }
-
 
     /**
      * Reads one CSV line from the given string
