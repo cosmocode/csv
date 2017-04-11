@@ -67,7 +67,7 @@ class helper_plugin_csv extends DokuWiki_Plugin {
                 $col = isset($set[2]) ? $set[2] : 1;
                 $typ = isset($set[3]) ? $set[3] : 'g';
                 $filters[$col] = array($value, $typ);
-            } elseif ($value === '') {
+            } elseif($value === '') {
                 $opt['file'] = $option;
             } else {
                 $opt[$option] = $value;
@@ -109,6 +109,36 @@ class helper_plugin_csv extends DokuWiki_Plugin {
         if($opt['outr']) $opt['outr'] -= 1;
 
         return $opt;
+    }
+
+    /**
+     * Load CSV data from the given file or remote address
+     *
+     * @param $file
+     * @return string
+     * @throws Exception
+     */
+    public static function loadContent($file) {
+        // load file data
+        if(preg_match('/^https?:\/\//i', $file)) {
+            $http = new DokuHTTPClient();
+            $content = $http->get($file);
+            if($content === false) throw new \Exception('Failed to fetch remote CSV data');
+
+        } else {
+            if(auth_quickaclcheck(getNS($file) . ':*') < AUTH_READ) {
+                throw new \Exception('Access denied to CSV data');
+            }
+            $file = mediaFN($file);
+            if(!file_exists($file)) {
+                throw new \Exception('requested local CSV file does not exist');
+            }
+            $content = io_readFile($file);
+        }
+        // if not valid UTF-8 is given we assume ISO-8859-1
+        if(!utf8_check($content)) $content = utf8_encode($content);
+
+        return $content;
     }
 
     /**

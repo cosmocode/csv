@@ -65,25 +65,12 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
 
         // load file data
         if($opt['file']) {
-            if(preg_match('/^https?:\/\//i', $opt['file'])) {
-                $http = new DokuHTTPClient();
-                $opt['content'] = $http->get($opt['file']);
-                if($opt['content'] === false) {
-                    $renderer->cdata('Failed to fetch remote CSV data');
-                    return true;
-                }
-            } else {
-                $renderer->info['cache'] = false;
-                if(auth_quickaclcheck(getNS($opt['file']) . ':*') < AUTH_READ) {
-                    $renderer->cdata('Access denied to CSV data');
-                    return true;
-                } else {
-                    $file = mediaFN($opt['file']);
-                    $opt['content'] = io_readFile($file);
-                }
+            try {
+                $opt['content'] = helper_plugin_csv::loadContent($opt['file']);
+            } catch(\Exception $e) {
+                $renderer->cdata($e->getMessage());
+                return true;
             }
-            // if not valid UTF-8 is given we assume ISO-8859-1
-            if(!utf8_check($opt['content'])) $opt['content'] = utf8_encode($opt['content']);
         }
 
         // check if there is content
@@ -98,6 +85,7 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         $maxcol = count($data[0]);
         $line = 0;
 
+        $renderer->table_open($maxcol, count($data));
         foreach($data as $row) {
             // render
             $renderer->tablerow_open();
@@ -139,6 +127,7 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
                 $i += $span;
             }
             $renderer->tablerow_close();
+            $line++;
         }
         $renderer->table_close();
 
