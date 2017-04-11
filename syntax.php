@@ -9,9 +9,7 @@
  * @author     Jerry G. Geiger <JerryGeiger@web.de>
  */
 
-if(!defined('DOKU_INC')) define('DOKU_INC', realpath(dirname(__FILE__).'/../../').'/');
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN', DOKU_INC.'lib/plugins/');
-require_once(DOKU_PLUGIN.'syntax.php');
+if(!defined('DOKU_INC')) die('meh');
 
 /**
  * All DokuWiki plugins to extend the parser/rendering mechanism
@@ -41,14 +39,14 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
     }
 
     /**
-     * Connect pattern to lexer
+     * @inheritdoc
      */
     function connectTo($mode) {
-        $this->Lexer->addSpecialPattern("<csv[^>]*>.*?(?:<\/csv>)", $mode, 'plugin_csv');
+        $this->Lexer->addSpecialPattern('<csv[^>]*>.*?(?:<\/csv>)', $mode, 'plugin_csv');
     }
 
     /**
-     * Handle the matches
+     * @inheritdoc
      */
     function handle($match, $state, $pos, Doku_Handler $handler) {
         global $INFO;
@@ -56,16 +54,16 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
 
         //default options
         $opt = array(
-            'hdr_rows'        => 1,
-            'hdr_cols'        => 0,
+            'hdr_rows' => 1,
+            'hdr_cols' => 0,
             'span_empty_cols' => 0,
-            'maxlines'        => 0,
-            'offset'          => 0,
-            'file'            => '',
-            'delim'           => ',',
-            'enclosure'       => '"',
-            'escape'          => '"',
-            'content'         => ''
+            'maxlines' => 0,
+            'offset' => 0,
+            'file' => '',
+            'delim' => ',',
+            'enclosure' => '"',
+            'escape' => '"',
+            'content' => ''
         );
 
         list($optstr, $opt['content']) = explode('>', $match, 2);
@@ -83,7 +81,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 } else {
                     $opt['file'] = cleanID($o);
                     if(!strlen(getNS($opt['file'])))
-                        $opt['file'] = $INFO['namespace'].':'.$opt['file'];
+                        $opt['file'] = $INFO['namespace'] . ':' . $opt['file'];
                 }
             }
         }
@@ -93,7 +91,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
     }
 
     /**
-     * Create output
+     * @inheritdoc
      */
     function render($mode, Doku_Renderer $renderer, $opt) {
         if($mode == 'metadata') return false;
@@ -101,8 +99,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         // load file data
         if($opt['file']) {
             if(preg_match('/^https?:\/\//i', $opt['file'])) {
-                require_once(DOKU_INC.'inc/HTTPClient.php');
-                $http           = new DokuHTTPClient();
+                $http = new DokuHTTPClient();
                 $opt['content'] = $http->get($opt['file']);
                 if($opt['content'] === false) {
                     $renderer->cdata('Failed to fetch remote CSV data');
@@ -110,11 +107,11 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 }
             } else {
                 $renderer->info['cache'] = false;
-                if(auth_quickaclcheck(getNS($opt['file']).':*') < AUTH_READ) {
+                if(auth_quickaclcheck(getNS($opt['file']) . ':*') < AUTH_READ) {
                     $renderer->cdata('Access denied to CSV data');
                     return true;
                 } else {
-                    $file           = mediaFN($opt['file']);
+                    $file = mediaFN($opt['file']);
                     $opt['content'] = io_readFile($file);
                 }
             }
@@ -131,15 +128,15 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
         }
 
         // get the first row - it will define the structure
-        $row    = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+        $row = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
         $maxcol = count($row);
-        $line   = 0;
+        $line = 0;
 
         // use offset (only if offset is not default value 0)
         if($opt['offset'] >= 1) {
-        	$content = explode("\n", $content);
-        	$content = array_slice($content, $opt['offset']+1-$opt['hdr_rows']);
-        	$content = implode("\n", $content);
+            $content = explode("\n", $content);
+            $content = array_slice($content, $opt['offset'] + 1 - $opt['hdr_rows']);
+            $content = implode("\n", $content);
         }
 
         // create the table and start rendering
@@ -172,7 +169,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
 
                 // print cell content, call linebreak() for newlines
                 $lines = explode("\n", $row[$i]);
-                $cnt   = count($lines);
+                $cnt = count($lines);
                 for($k = 0; $k < $cnt; $k++) {
                     $renderer->cdata($lines[$k]);
                     if($k < $cnt - 1) $renderer->linebreak();
@@ -192,10 +189,10 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             // get next row
             $row = $this->csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
             $line++;
-            
+
             // limit max lines (only if maxlines is not default value 0)
-            if($opt['maxlines'] >= 1 and $opt['maxlines'] == ($line-$opt['hdr_rows'])) {
-            	$row = false;
+            if($opt['maxlines'] >= 1 and $opt['maxlines'] == ($line - $opt['hdr_rows'])) {
+                $row = false;
             }
         }
         $renderer->table_close();
@@ -212,20 +209,20 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
      * handled here but is read byte by byte - if you need conversions do it on the output
      *
      * @author Andreas Gohr <andi@splitbrain.org>
-     * @param string $str   Input string, first CSV line will be removed
+     * @param string $str Input string, first CSV line will be removed
      * @param string $delim Delimiter character
-     * @param string $enc   Enclosing character
-     * @param string $esc   Escape character
+     * @param string $enc Enclosing character
+     * @param string $esc Escape character
      * @return array|boolean fields found on the line, false when no more lines could be found
      */
     function csv_explode_row(&$str, $delim = ',', $enc = '"', $esc = '\\') {
         $len = strlen($str);
 
         $infield = false;
-        $inenc   = false;
+        $inenc = false;
 
         $fields = array();
-        $word   = '';
+        $word = '';
 
         for($i = 0; $i < $len; $i++) {
             // convert to unix line endings
@@ -254,23 +251,23 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 // we hit a delimiter even though we're not in a field - an empty field
                 if($str[$i] == $delim) {
                     $fields[] = $word;
-                    $word     = '';
-                    $infield  = false;
-                    $inenc    = false;
+                    $word = '';
+                    $infield = false;
+                    $inenc = false;
                     continue;
                 }
 
                 // a newline - an empty field as well, but we're done with this line
                 if($str[$i] == "\n") {
                     $infield = false;
-                    $inenc   = false;
+                    $inenc = false;
 
                     //we saw no fields or content yet? empty line! skip it.
                     if(!count($fields) && $word === '') continue;
 
                     // otherwise add field
                     $fields[] = $word;
-                    $word     = '';
+                    $word = '';
                     break;
                 }
 
@@ -283,14 +280,14 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 if($str[$i] == $enc) {
                     // skip this one but open an enclosed field
                     $infield = true;
-                    $inenc   = true;
+                    $inenc = true;
                     continue;
                 }
 
                 // still here? whatever is here, is content and starts a field
                 $word .= $str[$i];
                 $infield = true;
-                $inenc   = false;
+                $inenc = false;
 
             } elseif($inenc) { // in field and enclosure
 
@@ -305,7 +302,7 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 if($str[$i] == $enc) {
                     // skip this one but close the enclosure
                     $infield = true;
-                    $inenc   = false;
+                    $inenc = false;
                     continue;
                 }
 
@@ -317,22 +314,22 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 // a delimiter - next field please
                 if($str[$i] == $delim) {
                     $fields[] = $word;
-                    $word     = '';
-                    $infield  = false;
-                    $inenc    = false;
+                    $word = '';
+                    $infield = false;
+                    $inenc = false;
                     continue;
                 }
 
                 // EOL - we're done with the line
                 if($str[$i] == "\n") {
                     $infield = false;
-                    $inenc   = false;
+                    $inenc = false;
 
                     //we saw no fields or content yet? empty line! skip it.
                     if(!count($fields) && $word === '') continue;
 
                     $fields[] = $word;
-                    $word     = '';
+                    $word = '';
                     break;
                 }
 
