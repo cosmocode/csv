@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * CSV Plugin: displays a cvs formatted file or inline data as a table
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
@@ -12,10 +12,9 @@
 if(!defined('DOKU_INC')) die('meh');
 
 /**
- * All DokuWiki plugins to extend the parser/rendering mechanism
- * need to inherit from this class
+ * Display CSV data as table
  */
-class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
 
     /**
      * What kind of syntax are we?
@@ -42,61 +41,18 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
      * @inheritdoc
      */
     function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('<csv[^>]*>.*?(?:<\/csv>)', $mode, 'plugin_csv');
+        $this->Lexer->addSpecialPattern('<csv[^>]*>.*?(?:<\/csv>)', $mode, 'plugin_csv_table');
     }
 
     /**
      * @inheritdoc
      */
     function handle($match, $state, $pos, Doku_Handler $handler) {
-        global $INFO;
-        $match = substr($match, 4, -6);
+        $match = substr($match, 4, -6); // <csv ... </csv>
 
-        //default options
-        $opt = helper_plugin_csv::getDefaultOpt();
-
-        list($optstr, $opt['content']) = explode('>', $match, 2);
-        unset($match);
-
-        // parse options
-        $optsin = explode(' ', $optstr);
-        $filters = array();
-        foreach($optsin as $o) {
-            $o = trim($o);
-            if(preg_match('/filter\[(\d+)\]="(.*?)"/', $o, $matches)) {
-                $filters[$matches[1]] = array($matches[2], 'g');
-            } elseif(preg_match('/filter\[(\w)\]="(.*?)"/', $o, $matches)) {
-                $filters[$matches[1]] = array($matches[3], $matches[2]);
-            } elseif(preg_match('/(\w+)="(.*?)"/', $o, $matches)) {
-                $opt[$matches[1]] = $matches[2];
-            } elseif(preg_match('/(\w+)=(.*)/', $o, $matches)) {
-                $opt[$matches[1]] = $matches[2];
-            } elseif($o) {
-                if(preg_match('/^https?:\/\//i', $o)) {
-                    $opt['file'] = $o;
-                } else {
-                    $opt['file'] = cleanID($o);
-                    if(!strlen(getNS($opt['file'])))
-                        $opt['file'] = $INFO['namespace'] . ':' . $opt['file'];
-                }
-            }
-        }
-        if($opt['delim'] == 'tab') $opt['delim'] = "\t";
-
-        foreach($filters as $col => $filter) {
-            list($text, $type) = $filter;
-            if($type != 'r') {
-                $text = preg_quote_cb($text);
-                $text = str_replace('\*', '.*?', $text);
-                $text = '^' . $text . '$';
-            }
-
-            if(@preg_match("/$text/", null) === false) {
-                msg("Invalid filter for column $col");
-            } else {
-                $opt['filter'][$col-1] = $text; // use zero based index internally
-            }
-        }
+        list($optstr, $content) = explode('>', $match, 2);
+        $opt = helper_plugin_csv::parseOptions($optstr);
+        $opt['content'] = $content;
 
         return $opt;
     }

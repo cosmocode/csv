@@ -31,8 +31,84 @@ class helper_plugin_csv extends DokuWiki_Plugin {
             'enclosure' => '"',
             'escape' => '"',
             'content' => '',
-            'filter' => array()
+            'filter' => array(),
+            'output' => '',
+            'outc' => 0,
+            'outr' => 0,
         );
+    }
+
+    /**
+     * Parse the options given in the syntax
+     *
+     * @param $optstr
+     * @return array
+     */
+    public static function parseOptions($optstr) {
+        global $INFO;
+
+        // defaults
+        $opt = helper_plugin_csv::getDefaultOpt();
+
+        $filters = array();
+        // parse options - https://regex101.com/r/tNdS9P/3/
+        preg_match_all(
+            '/([^ =\[\]]+)(?:\[(\d+)\](?:\[(\w)\])?)?(?:=((?:".*?")|(?:[^ ]+)))?/',
+            $optstr,
+            $matches,
+            PREG_SET_ORDER
+        );
+        foreach($matches as $set) {
+            $option = $set[1];
+            $value = isset($set[4]) ? $set[4] : '';
+            $value = trim($value, '"');
+
+            if($option == 'filter') {
+                $col = isset($set[2]) ? $set[2] : 1;
+                $typ = isset($set[3]) ? $set[3] : 'g';
+                $filters[$col] = array($value, $typ);
+            } elseif ($value === '') {
+                $opt['file'] = $option;
+            } else {
+                $opt[$option] = $value;
+            }
+        }
+
+        // fix tab delimiter
+        if($opt['delim'] == 'tab') $opt['delim'] = "\t";
+
+        // resolve local files
+        if($opt['file'] !== '' && !preg_match('/^https?:\/\//i', $opt['file'])) {
+            $opt['file'] = cleanID($opt['file']);
+            if(!strlen(getNS($opt['file']))) {
+                $opt['file'] = $INFO['namespace'] . ':' . $opt['file'];
+            }
+        }
+
+        // create regexp filters
+        foreach($filters as $col => $filter) {
+            list($text, $type) = $filter;
+            if($type != 'r') {
+                $text = preg_quote_cb($text);
+                $text = str_replace('\*', '.*?', $text);
+                $text = '^' . $text . '$';
+            }
+
+            if(@preg_match("/$text/", null) === false) {
+                msg("Invalid filter for column $col");
+            } else {
+                $opt['filter'][$col - 1] = $text; // use zero based index internally
+            }
+        }
+
+        // prepare the value output
+        list($c, $r) = explode(',', $opt['output']);
+        $opt['outc'] = (int) $c;
+        $opt['outr'] = (int) $r;
+        if($opt['outc']) $opt['outc'] -= 1;
+        if($opt['outr']) $opt['outr'] -= 1;
+
+        return $opt;
     }
 
     /**

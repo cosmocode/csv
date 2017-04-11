@@ -1,7 +1,5 @@
 <?php
 
-require_once dirname(__FILE__).'/../syntax.php';
-
 /**
  * @group plugin_csv
  * @group plugins
@@ -97,5 +95,42 @@ class syntax_plugin_csv_test extends DokuWikiTest {
         $this->assertSame(21, count($data[0]), 'number of columns');
 
         $this->assertEquals('Jessica Jones', $data[2][1]);
+    }
+
+    /**
+     * check the option parsing
+     */
+    function test_options() {
+        $opt = helper_plugin_csv::getDefaultOpt();
+        $this->assertEquals($opt, helper_plugin_csv::parseOptions(''));
+
+        $opt = helper_plugin_csv::parseOptions('foo.csv');
+        $this->assertEquals(':foo.csv', $opt['file']);
+
+        $opt = helper_plugin_csv::parseOptions('file=foo.csv');
+        $this->assertEquals(':foo.csv', $opt['file']);
+
+        $opt = helper_plugin_csv::parseOptions('file="foo.csv"');
+        $this->assertEquals(':foo.csv', $opt['file']);
+
+        $opt = helper_plugin_csv::parseOptions('delim=tab');
+        $this->assertEquals("\t", $opt['delim']);
+
+        $opt = helper_plugin_csv::parseOptions('filter[2]="*t(es)t*"');
+        $this->assertEquals('^.*?t\(es\)t.*?$', $opt['filter'][1]);
+
+        $opt = helper_plugin_csv::parseOptions('filter[2][r]="t(es)t.*"');
+        $this->assertEquals('t(es)t.*', $opt['filter'][1]);
+
+        $opt = helper_plugin_csv::parseOptions('foo="with spaces"');
+        $this->assertEquals('with spaces', $opt['foo']);
+
+        $opt = helper_plugin_csv::parseOptions('output=4,3');
+        $this->assertSame(3, $opt['outc']);
+        $this->assertSame(2, $opt['outr']);
+
+        $opt = helper_plugin_csv::parseOptions('output=4');
+        $this->assertSame(3, $opt['outc']);
+        $this->assertSame(0, $opt['outr']);
     }
 }
