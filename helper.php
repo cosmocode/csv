@@ -14,6 +14,43 @@ if(!defined('DOKU_INC')) die('meh');
  */
 class helper_plugin_csv extends DokuWiki_Plugin {
 
+    /**
+     * @param string $content
+     * @param array $opt
+     * @return array
+     */
+    public static function prepareData($content, $opt) {
+        $data = array();
+
+        // get the first row - it will define the structure
+        $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+        $maxcol = count($row);
+        $line = 0;
+
+        while($row !== false) {
+            // make sure we have enough columns
+            $row = array_pad($row, $maxcol, '');
+
+            if($line < $opt['hdr_rows']) {
+                // if headers are wanted, always add them
+                $data[] = $row;
+            } elseif($opt['offset'] && $line < $opt['offset']+$opt['hdr_rows']) {
+                // ignore the line
+            } elseif($opt['maxlines'] && $line > $opt['maxlines']+$opt['hdr_rows']) {
+                // we're done
+                break;
+            } else {
+                // add the line
+                $data[] = $row;
+            }
+
+            $line++;
+            $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+        }
+
+        return $data;
+    }
+
 
     /**
      * Reads one CSV line from the given string

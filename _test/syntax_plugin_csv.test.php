@@ -64,4 +64,28 @@ class syntax_plugin_csv_test extends DokuWikiTest {
 
         return $data;
     }
+
+    /**
+     * check general content loading
+     */
+    function test_content() {
+        $contents = file_get_contents(__DIR__ . '/avengers.csv');
+
+        $opt = array(
+            'hdr_rows' => 1,
+            'hdr_cols' => 0,
+            'span_empty_cols' => 0,
+            'maxlines' => 0,
+            'offset' => 0,
+            'file' => '',
+            'delim' => ',',
+            'enclosure' => '"',
+            'escape' => '"',
+            'content' => ''
+        );
+
+        $data = helper_plugin_csv::prepareData($contents, $opt);
+        $this->assertSame(174, count($data), 'number of rows');
+        $this->assertSame(21, count($data[0]), 'number of columns');
+    }
 }

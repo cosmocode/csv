@@ -127,24 +127,11 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
             return true;
         }
 
-        // get the first row - it will define the structure
-        $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
-        $maxcol = count($row);
+        $data = helper_plugin_csv::prepareData($content, $opt);
+        $maxcol = count($data[0]);
         $line = 0;
 
-        // use offset (only if offset is not default value 0)
-        if($opt['offset'] >= 1) {
-            $content = explode("\n", $content);
-            $content = array_slice($content, $opt['offset'] + 1 - $opt['hdr_rows']);
-            $content = implode("\n", $content);
-        }
-
-        // create the table and start rendering
-        $renderer->table_open($maxcol);
-        while($row !== false) {
-            // make sure we have enough columns
-            $row = array_pad($row, $maxcol, '');
-
+        foreach($data as $row) {
             // render
             $renderer->tablerow_open();
             for($i = 0; $i < $maxcol;) {
@@ -185,15 +172,6 @@ class syntax_plugin_csv extends DokuWiki_Syntax_Plugin {
                 $i += $span;
             }
             $renderer->tablerow_close();
-
-            // get next row
-            $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
-            $line++;
-
-            // limit max lines (only if maxlines is not default value 0)
-            if($opt['maxlines'] >= 1 and $opt['maxlines'] == ($line - $opt['hdr_rows'])) {
-                $row = false;
-            }
         }
         $renderer->table_close();
 

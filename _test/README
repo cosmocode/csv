@@ -3,6 +3,7 @@ We're using test files from various projects here:
 https://github.com/maxogden/csv-spectrum
 https://github.com/gebi/csv-test
 https://github.com/keboola/php-csv/tree/master/tests/Keboola/Csv
+https://github.com/fivethirtyeight/data/tree/master/avengers
 
 More tests, especially with various escape/enclosing/delimiter combos would
 be welcome.
