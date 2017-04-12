@@ -67,6 +67,7 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         if($opt['file']) {
             try {
                 $opt['content'] = helper_plugin_csv::loadContent($opt['file']);
+                if(!media_ispublic($opt['file'])) $renderer->info['cache'] = false;
             } catch(\Exception $e) {
                 $renderer->cdata($e->getMessage());
                 return true;

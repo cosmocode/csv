@@ -87,6 +87,13 @@ class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin {
     function render($mode, Doku_Renderer $renderer, $opt) {
         if($mode == 'metadata') return false;
 
+        if($opt['file'] === '') {
+            $renderer->cdata('no csv file given');
+            return true;
+        }
+
+        if(!media_ispublic($opt['file'])) $renderer->info['cache'] = false;
+
         $value = $this->getCachedValue($opt);
         $renderer->cdata($value);
         return true;
