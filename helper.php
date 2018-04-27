@@ -163,7 +163,7 @@ class helper_plugin_csv extends DokuWiki_Plugin {
                 $data[] = $row;
             } elseif($opt['offset'] && $line < $opt['offset'] + $opt['hdr_rows']) {
                 // ignore the line
-            } elseif($opt['maxlines'] && $line > $opt['maxlines'] + $opt['hdr_rows']) {
+            } elseif($opt['maxlines'] && $line >= $opt['maxlines'] + $opt['hdr_rows']) {
                 // we're done
                 break;
             } else {
