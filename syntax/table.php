@@ -83,6 +83,12 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         }
 
         $data = helper_plugin_csv::prepareData($content, $opt);
+
+        // Eine bessere Lösung wäre eine Schnittstelle im helper.php (vielleicht im prepareData())
+        if (!is_array($data[0])) {
+            msg("No search results or an invalid filter has been applied");
+            return false;
+        }
         $maxcol = count($data[0]);
         $line = 0;
 
