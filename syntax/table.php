@@ -83,6 +83,13 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         }
 
         $data = helper_plugin_csv::prepareData($content, $opt);
+
+        if (empty($data)) {
+            $message = $this->getLang('no_result');
+            $renderer->cdata($message);
+            return true;
+        }
+
         $maxcol = count($data[0]);
         $line = 0;
 
