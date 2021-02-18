@@ -5,4 +5,4 @@
  * @author Alex Krippner <krippner@cosmocode.de>
  */
 
-$lang['no_result'] = 'No filter results. Filter query may be invalid';
+$lang['no_result'] = 'No filter results';
