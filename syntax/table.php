@@ -93,9 +93,16 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         $maxcol = count($data[0]);
         $line = 0;
 
+        // render
         $renderer->table_open($maxcol, count($data));
+        // Open thead or tbody
+        ($opt['hdr_rows']) ? $renderer->tablethead_open() : $renderer->tabletbody_open();
         foreach($data as $row) {
-            // render
+            // close thead yet? 
+            if ($line > 0 && $line == $opt['hdr_rows']) {
+                $renderer->tablethead_close();
+                $renderer->tabletbody_open();
+            }
             $renderer->tablerow_open();
             for($i = 0; $i < $maxcol;) {
                 $span = 1;
@@ -137,6 +144,8 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
             $renderer->tablerow_close();
             $line++;
         }
+        // if there was a tbody, close it
+        if ($opt['hdr_rows'] < $line) $renderer->tabletbody_close();
         $renderer->table_close();
 
         return true;
