@@ -1,7 +1,7 @@
 base    csv
 author  Andreas Gohr
 email   dokuwiki@cosmocode.de
-date    2021-02-18
+date    2022-01-03
 name    CSV Plugin
 desc    Displays a CSV file, or inline CSV data, as a table
 url     http://www.dokuwiki.org/plugin:csv
