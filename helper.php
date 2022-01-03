@@ -79,10 +79,7 @@ class helper_plugin_csv extends DokuWiki_Plugin {
 
         // resolve local files
         if($opt['file'] !== '' && !preg_match('/^https?:\/\//i', $opt['file'])) {
-            $opt['file'] = cleanID($opt['file']);
-            if(!strlen(getNS($opt['file']))) {
-                $opt['file'] = $INFO['namespace'] . ':' . $opt['file'];
-            }
+            resolve_mediaid($INFO['namespace'] ?? '', $opt['file'], $exists);
         }
 
         // create regexp filters
@@ -102,11 +99,12 @@ class helper_plugin_csv extends DokuWiki_Plugin {
         }
 
         // prepare the value output
-        list($c, $r) = explode(',', $opt['output']);
+        list($c, $r) = array_pad(explode(',', $opt['output']), 2, 0);
         $opt['outc'] = (int) $c;
         $opt['outr'] = (int) $r;
         if($opt['outc']) $opt['outc'] -= 1;
         if($opt['outr']) $opt['outr'] -= 1;
+        unset($opt['output']);
 
         return $opt;
     }
@@ -281,7 +279,7 @@ class helper_plugin_csv extends DokuWiki_Plugin {
             } elseif($inenc) { // in field and enclosure
 
                 // we have an escape char that is an enclosure and the next char is an enclosure, too
-                if($str[$i] == $esc && $esc == $enc && $str[$i + 1] == $esc) {
+                if($str[$i] == $esc && $esc == $enc && isset($str[$i + 1]) && $str[$i + 1] == $esc) {
                     $i++; // skip this char and take next as is
                     $word .= $str[$i];
                     continue;
