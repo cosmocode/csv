@@ -6,47 +6,41 @@
  * @author     Andreas Gohr <gohr@cosmocode.de>
  */
 
-if(!defined('DOKU_INC')) die('meh');
-
 /**
  * Display a single CSV value
  */
-class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin
+{
 
     protected $rowcache = array();
 
-    /**
-     * What kind of syntax are we?
-     */
-    function getType() {
+    /** @inheritdoc */
+    public function getType()
+    {
         return 'substition';
     }
 
-    /**
-     * Where to sort in?
-     */
-    function getSort() {
+    /** @inheritdoc */
+    public function getSort()
+    {
         return 155;
     }
 
-    /**
-     * Paragraph Type
-     */
-    function getPType() {
+    /** @inheritdoc */
+    public function getPType()
+    {
         return 'normal';
     }
 
-    /**
-     * @inheritdoc
-     */
-    function connectTo($mode) {
+    /** @inheritdoc */
+    public function connectTo($mode)
+    {
         $this->Lexer->addSpecialPattern('<csvval[^>]*>', $mode, 'plugin_csv_value');
     }
 
-    /**
-     * @inheritdoc
-     */
-    function handle($match, $state, $pos, Doku_Handler $handler) {
+    /** @inheritdoc */
+    public function handle($match, $state, $pos, Doku_Handler $handler)
+    {
         $optstr = substr($match, 7, -1); // <csvval ... >
         $opt = helper_plugin_csv::parseOptions($optstr);
 
@@ -57,7 +51,8 @@ class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin {
      * @param array $opt
      * @return string
      */
-    function getCachedValue($opt) {
+    public function getCachedValue($opt)
+    {
         $r = $opt['outr'] + $opt['hdr_rows'];
         $c = $opt['outc'];
         unset($opt['output']);
@@ -65,34 +60,33 @@ class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin {
         unset($opt['outc']);
 
         $cache = md5(serialize($opt));
-        if(!isset($this->rowcache[$cache])) {
+        if (!isset($this->rowcache[$cache])) {
             try {
                 $content = helper_plugin_csv::loadContent($opt['file']);
-            } catch(\Exception $e) {
+            } catch (\Exception $e) {
                 return $e->getMessage();
             }
             $this->rowcache[$cache] = helper_plugin_csv::prepareData($content, $opt);
         }
 
-        if(isset($this->rowcache[$cache][$r][$c])) {
+        if (isset($this->rowcache[$cache][$r][$c])) {
             return $this->rowcache[$cache][$r][$c];
         } else {
             return 'Failed to find requested value';
         }
     }
 
-    /**
-     * @inheritdoc
-     */
-    function render($mode, Doku_Renderer $renderer, $opt) {
-        if($mode == 'metadata') return false;
+    /** @inheritdoc */
+    public function render($mode, Doku_Renderer $renderer, $opt)
+    {
+        if ($mode == 'metadata') return false;
 
-        if($opt['file'] === '') {
+        if ($opt['file'] === '') {
             $renderer->cdata('no csv file given');
             return true;
         }
 
-        if(!media_ispublic($opt['file'])) $renderer->info['cache'] = false;
+        if (!media_ispublic($opt['file'])) $renderer->info['cache'] = false;
 
         $value = $this->getCachedValue($opt);
         $renderer->cdata($value);
@@ -100,4 +94,3 @@ class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin {
     }
 
 }
-//Setup VIM: ex: et ts=4 enc=utf-8 :

@@ -9,45 +9,39 @@
  * @author     Jerry G. Geiger <JerryGeiger@web.de>
  */
 
-if(!defined('DOKU_INC')) die('meh');
-
 /**
  * Display CSV data as table
  */
-class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin
+{
 
-    /**
-     * What kind of syntax are we?
-     */
-    function getType() {
+    /** @inheritdoc */
+    public function getType()
+    {
         return 'substition';
     }
 
-    /**
-     * Where to sort in?
-     */
-    function getSort() {
+    /** @inheritdoc */
+    public function getSort()
+    {
         return 155;
     }
 
-    /**
-     * Paragraph Type
-     */
-    function getPType() {
+    /** @inheritdoc */
+    public function getPType()
+    {
         return 'block';
     }
 
-    /**
-     * @inheritdoc
-     */
-    function connectTo($mode) {
+    /** @inheritdoc */
+    public function connectTo($mode)
+    {
         $this->Lexer->addSpecialPattern('<csv[^>]*>.*?(?:<\/csv>)', $mode, 'plugin_csv_table');
     }
 
-    /**
-     * @inheritdoc
-     */
-    function handle($match, $state, $pos, Doku_Handler $handler) {
+    /** @inheritdoc */
+    public function handle($match, $state, $pos, Doku_Handler $handler)
+    {
         $match = substr($match, 4, -6); // <csv ... </csv>
 
         list($optstr, $content) = explode('>', $match, 2);
@@ -57,18 +51,17 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         return $opt;
     }
 
-    /**
-     * @inheritdoc
-     */
-    function render($mode, Doku_Renderer $renderer, $opt) {
-        if($mode == 'metadata') return false;
+    /** @inheritdoc */
+    public function render($mode, Doku_Renderer $renderer, $opt)
+    {
+        if ($mode == 'metadata') return false;
 
         // load file data
-        if($opt['file']) {
+        if ($opt['file']) {
             try {
                 $opt['content'] = helper_plugin_csv::loadContent($opt['file']);
-                if(!media_ispublic($opt['file'])) $renderer->info['cache'] = false;
-            } catch(\Exception $e) {
+                if (!media_ispublic($opt['file'])) $renderer->info['cache'] = false;
+            } catch (\Exception $e) {
                 $renderer->cdata($e->getMessage());
                 return true;
             }
@@ -77,7 +70,7 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         // check if there is content
         $content =& $opt['content'];
         $content = trim($content);
-        if($content === '') {
+        if ($content === '') {
             $renderer->cdata('No csv data found');
             return true;
         }
@@ -97,19 +90,19 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
         $renderer->table_open($maxcol, count($data));
         // Open thead or tbody
         ($opt['hdr_rows']) ? $renderer->tablethead_open() : $renderer->tabletbody_open();
-        foreach($data as $row) {
-            // close thead yet? 
+        foreach ($data as $row) {
+            // close thead yet?
             if ($line > 0 && $line == $opt['hdr_rows']) {
                 $renderer->tablethead_close();
                 $renderer->tabletbody_open();
             }
             $renderer->tablerow_open();
-            for($i = 0; $i < $maxcol;) {
+            for ($i = 0; $i < $maxcol;) {
                 $span = 1;
                 // lookahead to find spanning cells
-                if($opt['span_empty_cols']) {
-                    for($j = $i + 1; $j < $maxcol; $j++) {
-                        if($row[$j] === '') {
+                if ($opt['span_empty_cols']) {
+                    for ($j = $i + 1; $j < $maxcol; $j++) {
+                        if ($row[$j] === '') {
                             $span++;
                         } else {
                             break;
@@ -118,7 +111,7 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
                 }
 
                 // open cell
-                if($line < $opt['hdr_rows'] || $i < $opt['hdr_cols']) {
+                if ($line < $opt['hdr_rows'] || $i < $opt['hdr_cols']) {
                     $renderer->tableheader_open($span);
                 } else {
                     $renderer->tablecell_open($span);
@@ -127,13 +120,13 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
                 // print cell content, call linebreak() for newlines
                 $lines = explode("\n", $row[$i]);
                 $cnt = count($lines);
-                for($k = 0; $k < $cnt; $k++) {
+                for ($k = 0; $k < $cnt; $k++) {
                     $renderer->cdata($lines[$k]);
-                    if($k < $cnt - 1) $renderer->linebreak();
+                    if ($k < $cnt - 1) $renderer->linebreak();
                 }
 
                 // close cell
-                if($line < $opt['hdr_rows'] || $i < $opt['hdr_cols']) {
+                if ($line < $opt['hdr_rows'] || $i < $opt['hdr_cols']) {
                     $renderer->tableheader_close();
                 } else {
                     $renderer->tablecell_close();
@@ -152,4 +145,3 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin {
     }
 
 }
-//Setup VIM: ex: et ts=4 enc=utf-8 :
