@@ -120,7 +120,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
     {
         // load file data
         if (preg_match('/^https?:\/\//i', $file)) {
-            $http = new DokuHTTPClient();
+            $http = new dokuwiki\HTTP\DokuHTTPClient();
             $content = $http->get($file);
             if ($content === false) throw new \Exception('Failed to fetch remote CSV data');
 
