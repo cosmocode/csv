@@ -1,18 +1,19 @@
 <?php
+
+use dokuwiki\Extension\SyntaxPlugin;
+
 /**
  * CSV Plugin: displays a single value from a CSV file
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Andreas Gohr <gohr@cosmocode.de>
  */
-
 /**
  * Display a single CSV value
  */
-class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin
+class syntax_plugin_csv_value extends SyntaxPlugin
 {
-
-    protected $rowcache = array();
+    protected $rowcache = [];
 
     /** @inheritdoc */
     public function getType()
@@ -92,5 +93,4 @@ class syntax_plugin_csv_value extends DokuWiki_Syntax_Plugin
         $renderer->cdata($value);
         return true;
     }
-
 }

@@ -66,7 +66,7 @@ class CSVTest extends DokuWikiTest
         // read all data
         $result = [];
         while ($csvdata != '') {
-            $line = \helper_plugin_csv::csv_explode_row($csvdata, $delim, $enc, $esc);
+            $line = \helper_plugin_csv::csvExplodeRow($csvdata, $delim, $enc, $esc);
             if ($line !== false) array_push($result, $line);
         }
 

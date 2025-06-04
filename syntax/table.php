@@ -1,4 +1,7 @@
 <?php
+
+use dokuwiki\Extension\SyntaxPlugin;
+
 /**
  * CSV Plugin: displays a cvs formatted file or inline data as a table
  *
@@ -8,13 +11,11 @@
  * @author     Andreas Gohr <gohr@cosmocode.de>
  * @author     Jerry G. Geiger <JerryGeiger@web.de>
  */
-
 /**
  * Display CSV data as table
  */
-class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin
+class syntax_plugin_csv_table extends SyntaxPlugin
 {
-
     /** @inheritdoc */
     public function getType()
     {
@@ -44,7 +45,7 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin
     {
         $match = substr($match, 4, -6); // <csv ... </csv>
 
-        list($optstr, $content) = explode('>', $match, 2);
+        [$optstr, $content] = explode('>', $match, 2);
         $opt = helper_plugin_csv::parseOptions($optstr);
         $opt['content'] = $content;
 
@@ -143,5 +144,4 @@ class syntax_plugin_csv_table extends DokuWiki_Syntax_Plugin
 
         return true;
     }
-
 }

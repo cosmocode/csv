@@ -1,17 +1,20 @@
 <?php
+
+use dokuwiki\Extension\Plugin;
+use dokuwiki\HTTP\DokuHTTPClient;
+use dokuwiki\Utf8\Clean;
+
 /**
  * CSV Plugin helper plugin
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Andreas Gohr <gohr@cosmocode.de>
  */
-
 /**
  * Implement CSV parser and other helpers
  */
-class helper_plugin_csv extends DokuWiki_Plugin
+class helper_plugin_csv extends Plugin
 {
-
     /**
      * Returns the default options
      *
@@ -19,7 +22,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
      */
     public static function getDefaultOpt()
     {
-        return array(
+        return [
             'hdr_rows' => 1,
             'hdr_cols' => 0,
             'span_empty_cols' => 0,
@@ -30,11 +33,11 @@ class helper_plugin_csv extends DokuWiki_Plugin
             'enclosure' => '"',
             'escape' => '"',
             'content' => '',
-            'filter' => array(),
+            'filter' => [],
             'output' => '',
             'outc' => 0,
-            'outr' => 0,
-        );
+            'outr' => 0
+        ];
     }
 
     /**
@@ -50,7 +53,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
         // defaults
         $opt = helper_plugin_csv::getDefaultOpt();
 
-        $filters = array();
+        $filters = [];
         // parse options - https://regex101.com/r/tNdS9P/3/
         preg_match_all(
             '/([^ =\[\]]+)(?:\[(\d+)\](?:\[(\w)\])?)?(?:=((?:".*?")|(?:[^ ]+)))?/',
@@ -60,13 +63,13 @@ class helper_plugin_csv extends DokuWiki_Plugin
         );
         foreach ($matches as $set) {
             $option = $set[1];
-            $value = isset($set[4]) ? $set[4] : '';
+            $value = $set[4] ?? '';
             $value = trim($value, '"');
 
             if ($option == 'filter') {
-                $col = isset($set[2]) ? $set[2] : 1;
-                $typ = isset($set[3]) ? $set[3] : 'g';
-                $filters[$col] = array($value, $typ);
+                $col = $set[2] ?? 1;
+                $typ = $set[3] ?? 'g';
+                $filters[$col] = [$value, $typ];
             } elseif ($value === '') {
                 $opt['file'] = $option;
             } else {
@@ -84,7 +87,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
 
         // create regexp filters
         foreach ($filters as $col => $filter) {
-            list($text, $type) = $filter;
+            [$text, $type] = $filter;
             if ($type != 'r') {
                 $text = preg_quote_cb($text);
                 $text = str_replace('\*', '.*?', $text);
@@ -99,7 +102,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
         }
 
         // prepare the value output
-        list($c, $r) = array_pad(explode(',', $opt['output']), 2, 0);
+        [$c, $r] = array_pad(explode(',', $opt['output']), 2, 0);
         $opt['outc'] = (int)$c;
         $opt['outr'] = (int)$r;
         if ($opt['outc']) $opt['outc'] -= 1;
@@ -120,10 +123,9 @@ class helper_plugin_csv extends DokuWiki_Plugin
     {
         // load file data
         if (preg_match('/^https?:\/\//i', $file)) {
-            $http = new dokuwiki\HTTP\DokuHTTPClient();
+            $http = new DokuHTTPClient();
             $content = $http->get($file);
             if ($content === false) throw new \Exception('Failed to fetch remote CSV data');
-
         } else {
             if (auth_quickaclcheck(getNS($file) . ':*') < AUTH_READ) {
                 throw new \Exception('Access denied to CSV data');
@@ -135,7 +137,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
             $content = io_readFile($file);
         }
         // if not valid UTF-8 is given we assume ISO-8859-1
-        if (!utf8_check($content)) $content = utf8_encode($content);
+        if (!Clean::isUtf8($content)) $content = utf8_encode($content);
 
         return $content;
     }
@@ -147,10 +149,10 @@ class helper_plugin_csv extends DokuWiki_Plugin
      */
     public static function prepareData($content, $opt)
     {
-        $data = array();
+        $data = [];
 
         // get the first row - it will define the structure
-        $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+        $row = helper_plugin_csv::csvExplodeRow($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
         $maxcol = count($row);
         $line = 0;
 
@@ -183,7 +185,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
             }
 
             $line++;
-            $row = helper_plugin_csv::csv_explode_row($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
+            $row = helper_plugin_csv::csvExplodeRow($content, $opt['delim'], $opt['enclosure'], $opt['escape']);
         }
 
         return $data;
@@ -204,14 +206,14 @@ class helper_plugin_csv extends DokuWiki_Plugin
      * @return array|boolean fields found on the line, false when no more lines could be found
      * @author Andreas Gohr <andi@splitbrain.org>
      */
-    public static function csv_explode_row(&$str, $delim = ',', $enc = '"', $esc = '\\')
+    public static function csvExplodeRow(&$str, $delim = ',', $enc = '"', $esc = '\\')
     {
         $len = strlen($str);
 
         $infield = false;
         $inenc = false;
 
-        $fields = array();
+        $fields = [];
         $word = '';
 
         for ($i = 0; $i < $len; $i++) {
@@ -237,7 +239,6 @@ class helper_plugin_csv extends DokuWiki_Plugin
              * Now decide special cases depending on current field and enclosure state
              */
             if (!$infield) { // not in field
-
                 // we hit a delimiter even though we're not in a field - an empty field
                 if ($str[$i] == $delim) {
                     $fields[] = $word;
@@ -253,7 +254,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
                     $inenc = false;
 
                     //we saw no fields or content yet? empty line! skip it.
-                    if (!count($fields) && $word === '') continue;
+                    if ($fields === [] && $word === '') continue;
 
                     // otherwise add field
                     $fields[] = $word;
@@ -278,9 +279,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
                 $word .= $str[$i];
                 $infield = true;
                 $inenc = false;
-
             } elseif ($inenc) { // in field and enclosure
-
                 // we have an escape char that is an enclosure and the next char is an enclosure, too
                 if ($str[$i] == $esc && $esc == $enc && isset($str[$i + 1]) && $str[$i + 1] == $esc) {
                     $i++; // skip this char and take next as is
@@ -298,9 +297,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
 
                 // still here? just add more content
                 $word .= $str[$i];
-
             } else { // in field but no enclosure
-
                 // a delimiter - next field please
                 if ($str[$i] == $delim) {
                     $fields[] = $word;
@@ -316,7 +313,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
                     $inenc = false;
 
                     //we saw no fields or content yet? empty line! skip it.
-                    if (!count($fields) && $word === '') continue;
+                    if ($fields === [] && $word === '') continue;
 
                     $fields[] = $word;
                     $word = '';
@@ -336,8 +333,7 @@ class helper_plugin_csv extends DokuWiki_Plugin
         // shorten the string by the stuff we read
         $str = substr($str, $i + 1);
 
-        if (!count($fields)) return false;
+        if ($fields === []) return false;
         return $fields;
     }
 }
-
