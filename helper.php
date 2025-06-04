@@ -1,6 +1,7 @@
 <?php
 
 use dokuwiki\Extension\Plugin;
+use dokuwiki\File\MediaResolver;
 use dokuwiki\HTTP\DokuHTTPClient;
 use dokuwiki\Utf8\Clean;
 
@@ -82,7 +83,8 @@ class helper_plugin_csv extends Plugin
 
         // resolve local files
         if ($opt['file'] !== '' && !preg_match('/^https?:\/\//i', $opt['file'])) {
-            resolve_mediaid($INFO['namespace'] ?? '', $opt['file'], $exists);
+            $resolver = new MediaResolver($INFO['id'] ?? '');
+            $opt['file'] = $resolver->resolveId($opt['file']);
         }
 
         // create regexp filters
